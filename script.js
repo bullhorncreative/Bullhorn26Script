@@ -1206,13 +1206,22 @@ function initSeeMore() {
 
 function initWorkListMedia() {
   const root = document.querySelector('.work-list-view');
-  if (!root || root._workMediaInited) return;
+  console.log('[workListMedia] init called, root found:', !!root);
+  if (!root) return;
+  if (root._workMediaInited) {
+    console.log('[workListMedia] already inited on this root, skipping');
+    return;
+  }
   root._workMediaInited = true;
 
   const rows = Array.from(root.querySelectorAll('.work-item-list'));
+  console.log('[workListMedia] rows found:', rows.length);
   if (!rows.length) return;
 
-  if (window.matchMedia('(hover: none)').matches) {
+  const isTouch = window.matchMedia('(hover: none)').matches;
+  console.log('[workListMedia] hover:none matches (touch branch)?', isTouch);
+
+  if (isTouch) {
     // Touch/tablet — no cursor to follow, so reveal each row's image inline as it scrolls into view
     rows.forEach(row => {
       const wrap = row.querySelector('.flex-list');
@@ -1221,6 +1230,7 @@ function initWorkListMedia() {
 
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
+        console.log('[workListMedia] touch row intersecting?', entry.isIntersecting, entry.target);
         entry.target.querySelector('.flex-list')?.classList.toggle('is-inview', entry.isIntersecting);
       });
     }, { threshold: 0.2 });
@@ -1229,20 +1239,26 @@ function initWorkListMedia() {
     return;
   }
 
+  console.log('[workListMedia] gsap available?', !!window.gsap);
   if (!window.gsap) return;
 
   // Built here, not in Webflow — lives on <body> so positioning is document-relative
   const mediaContainer = document.createElement('div');
   mediaContainer.className = 'work-media-container';
   document.body.appendChild(mediaContainer);
+  console.log('[workListMedia] mediaContainer created and appended to body');
 
   gsap.set(mediaContainer, { yPercent: -50 });
   const yTo = gsap.quickTo(mediaContainer, 'y', { duration: 0.5, ease: 'power4' });
 
   let current = null;
 
-  root.addEventListener('mouseenter', () => mediaContainer.classList.add('on'));
+  root.addEventListener('mouseenter', () => {
+    console.log('[workListMedia] root mouseenter — adding .on');
+    mediaContainer.classList.add('on');
+  });
   root.addEventListener('mouseleave', () => {
+    console.log('[workListMedia] root mouseleave — removing .on, clearing container');
     mediaContainer.classList.remove('on');
     mediaContainer.replaceChildren();
     current = null;
@@ -1255,10 +1271,12 @@ function initWorkListMedia() {
     if (!row || row === current) return; // guard against child re-fires
     current = row;
     const img = row.querySelector('.work-img-list');
+    console.log('[workListMedia] mouseover row, img found?', !!img, img?.currentSrc || img?.src);
     if (img) createMedia(img.currentSrc || img.src);
   });
 
   function createMedia(url) {
+    console.log('[workListMedia] createMedia called with url:', url);
     const div   = document.createElement('div');
     const image = document.createElement('img');
     image.src = url;
