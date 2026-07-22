@@ -1,4 +1,4 @@
-// v1.1.0
+// v1.1.1
 
 // Page transitions + work filter + case study
 
