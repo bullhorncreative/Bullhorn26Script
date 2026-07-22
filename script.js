@@ -1,5 +1,4 @@
-
-
+// v1.1.0
 
 // Page transitions + work filter + case study
 
@@ -122,6 +121,7 @@ function initAfterEnterFunctions(next) {
   initWorkFilter();
   initViewToggle();   // must follow initWorkFilter — reads FilterAPI.currentParams()
   syncWorkNavLinks();
+  initWorkListMedia();
   initGalleryScroll();
   initGalleryVideo();
   initShowreel();
@@ -1197,6 +1197,75 @@ function initSeeMore() {
           </svg>
         </div>
       </a>`;
+  }
+}
+
+
+
+//Work list media preview (cursor-follow on hover devices, inline reveal on touch)
+
+function initWorkListMedia() {
+  const root = document.querySelector('.work-list-view');
+  if (!root || root._workMediaInited) return;
+  root._workMediaInited = true;
+
+  const rows = Array.from(root.querySelectorAll('.work-item-list'));
+  if (!rows.length) return;
+
+  if (window.matchMedia('(hover: none)').matches) {
+    // Touch/tablet — no cursor to follow, so reveal each row's image inline as it scrolls into view
+    rows.forEach(row => {
+      const wrap = row.querySelector('.flex-list');
+      if (wrap) wrap.classList.add('is-touch-thumb');
+    });
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        entry.target.querySelector('.flex-list')?.classList.toggle('is-inview', entry.isIntersecting);
+      });
+    }, { threshold: 0.2 });
+
+    rows.forEach(row => observer.observe(row));
+    return;
+  }
+
+  if (!window.gsap) return;
+
+  // Built here, not in Webflow — lives on <body> so positioning is document-relative
+  const mediaContainer = document.createElement('div');
+  mediaContainer.className = 'work-media-container';
+  document.body.appendChild(mediaContainer);
+
+  gsap.set(mediaContainer, { yPercent: -50 });
+  const yTo = gsap.quickTo(mediaContainer, 'y', { duration: 0.5, ease: 'power4' });
+
+  let current = null;
+
+  root.addEventListener('mouseenter', () => mediaContainer.classList.add('on'));
+  root.addEventListener('mouseleave', () => {
+    mediaContainer.classList.remove('on');
+    mediaContainer.replaceChildren();
+    current = null;
+  });
+  root.addEventListener('mousemove', e => yTo(e.clientY + window.scrollY));
+
+  // Delegated — survives CMS filtering and re-renders
+  root.addEventListener('mouseover', e => {
+    const row = e.target.closest('.work-item-list');
+    if (!row || row === current) return; // guard against child re-fires
+    current = row;
+    const img = row.querySelector('.work-img-list');
+    if (img) createMedia(img.currentSrc || img.src);
+  });
+
+  function createMedia(url) {
+    const div   = document.createElement('div');
+    const image = document.createElement('img');
+    image.src = url;
+    div.appendChild(image);
+    mediaContainer.appendChild(div);
+    gsap.to([div, image], { y: 0, duration: 0.6, ease: 'expo.inOut' });
+    if (mediaContainer.children.length > 20) mediaContainer.children[0].remove();
   }
 }
 
