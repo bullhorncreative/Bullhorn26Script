@@ -1,4 +1,5 @@
-// v1.1.2
+// v1.1.3
+console.log('[script.js] v1.1.3 loaded');
 
 // Page transitions + work filter + case study
 
@@ -103,6 +104,7 @@ function initBeforeEnterFunctions(next) {
 
 function initAfterEnterFunctions(next) {
   const container = next || document;
+  console.log('[initAfterEnterFunctions] called, container:', container, 'already inited?', !!container._afterEnterInited);
 
   // On first load this runs TWICE — once from Barba's `once` hook and again
   // from the global `afterEnter` hook — which double-binds every click handler
@@ -110,7 +112,10 @@ function initAfterEnterFunctions(next) {
   // it never opens.) Mark the container so the duplicate same-container call is
   // a no-op. A real navigation supplies a fresh container node, so it still
   // re-initialises correctly each time.
-  if (container._afterEnterInited) return;
+  if (container._afterEnterInited) {
+    console.log('[initAfterEnterFunctions] bailing early -- container already inited');
+    return;
+  }
   container._afterEnterInited = true;
 
   nextPage = container;
@@ -119,6 +124,7 @@ function initAfterEnterFunctions(next) {
   initAccordion();
   initAccordionFilterLink();
   initSlider();
+  console.log('[initAfterEnterFunctions] about to call initCenteredSliders');
   initCenteredSliders();
   initWorkFilter();
   initViewToggle();   // must follow initWorkFilter — reads FilterAPI.currentParams()
