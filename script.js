@@ -1664,19 +1664,30 @@ function initPeopleGrid() {
 //Team slider (centered, draggable, autoplay)
 
 function initCenteredSliders() {
+  console.log('[centeredSlider] initCenteredSliders called');
+
   // Only treat elements that actually CONTAIN slides as sliders.
   // This ignores the buttons container even if it still carries the
   // data-centered-slider="wrapper" attribute (the phantom "Slider #1").
-  const sliderWrappers = gsap.utils
-    .toArray('[data-centered-slider="wrapper"]')
+  const allWrapperEls = gsap.utils.toArray('[data-centered-slider="wrapper"]');
+  console.log('[centeredSlider] wrapper elements found:', allWrapperEls.length, allWrapperEls);
+
+  const sliderWrappers = allWrapperEls
     .filter(w => w.querySelector('[data-centered-slider="slide"]'));
+  console.log('[centeredSlider] wrappers containing slides:', sliderWrappers.length, sliderWrappers);
 
   sliderWrappers.forEach((sliderWrapper, wrapperIndex) => {
+    console.log('[centeredSlider] processing wrapper', wrapperIndex, sliderWrapper);
+
     // Barba-safe: don't double-bind if this exact element was already set up
-    if (sliderWrapper._sliderInit) return;
+    if (sliderWrapper._sliderInit) {
+      console.log('[centeredSlider] wrapper already inited, skipping', wrapperIndex);
+      return;
+    }
     sliderWrapper._sliderInit = true;
 
     const slides = gsap.utils.toArray(sliderWrapper.querySelectorAll('[data-centered-slider="slide"]'));
+    console.log('[centeredSlider] slides found:', slides.length, slides);
 
     // Buttons may live OUTSIDE the slide wrapper (separate Webflow block).
     // Look inside the wrapper first, then fall back to the document.
@@ -1684,6 +1695,7 @@ function initCenteredSliders() {
       || document.querySelector('[data-centered-slider="prev-button"]');
     const nextButton = sliderWrapper.querySelector('[data-centered-slider="next-button"]')
       || document.querySelector('[data-centered-slider="next-button"]');
+    console.log('[centeredSlider] prevButton:', prevButton, 'nextButton:', nextButton);
 
     let activeElement;
     let autoplay;
@@ -1692,9 +1704,11 @@ function initCenteredSliders() {
     const autoplayDuration = autoplayEnabled
       ? parseFloat(sliderWrapper.getAttribute('data-slider-autoplay-duration')) || 4
       : 0;
+    console.log('[centeredSlider] autoplayEnabled:', autoplayEnabled, 'autoplayDuration:', autoplayDuration);
 
     slides.forEach((slide, i) => slide.setAttribute("id", `slide-${i}`));
 
+    console.log('[centeredSlider] calling horizontalLoop with', slides.length, 'slides');
     const loop = horizontalLoop(slides, {
       paused: true,
       draggable: true,
@@ -1706,8 +1720,10 @@ function initCenteredSliders() {
         activeElement = element;
       }
     });
+    console.log('[centeredSlider] loop created:', loop);
 
     const startIndex = Math.floor(slides.length / 2);
+    console.log('[centeredSlider] moving to startIndex:', startIndex);
     loop.toIndex(startIndex, { duration: 0 });
 
     // -- Re-measure once images/fonts have settled --------------------------
@@ -1803,6 +1819,7 @@ function horizontalLoop(items, config) {
   let timeline;
   items = gsap.utils.toArray(items);
   config = config || {};
+  console.log('[horizontalLoop] called with', items.length, 'items, config:', config);
 
   gsap.context(() => {
     let onChange = config.onChange,
@@ -1856,6 +1873,7 @@ function horizontalLoop(items, config) {
         });
         gsap.set(items, { xPercent: i => xPercents[i] });
         totalWidth = getTotalWidth();
+        console.log('[horizontalLoop] populateWidths -- widths:', widths.slice(), 'totalWidth:', totalWidth, 'container:', container);
         if (widths.some(w => !w)) {
           console.warn("[horizontalLoop] A slide measured 0px wide -- measured before images loaded. settleRefresh() should correct this.");
         }
@@ -1959,7 +1977,9 @@ function horizontalLoop(items, config) {
 
     if (config.reversed) { tl.vars.onReverseComplete(); tl.reverse(); }
 
+    console.log('[horizontalLoop] draggable requested:', config.draggable, 'typeof Draggable:', typeof Draggable);
     if (config.draggable && typeof Draggable === "function") {
+      console.log('[horizontalLoop] setting up Draggable on', items[0].parentNode);
       proxy = document.createElement("div");
       let wrap = gsap.utils.wrap(0, 1),
         ratio, startProgress, draggable, lastSnap, initChangeX, wasPlaying,
@@ -2005,7 +2025,9 @@ function horizontalLoop(items, config) {
     lastIndex = curIndex;
     onChange && onChange(items[curIndex], curIndex);
     timeline = tl;
+    console.log('[horizontalLoop] setup complete, timeline duration:', tl.duration(), 'draggable attached:', !!tl.draggable);
   });
 
+  console.log('[horizontalLoop] returning timeline:', timeline);
   return timeline;
 }
