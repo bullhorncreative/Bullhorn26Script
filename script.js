@@ -1,5 +1,4 @@
-// v1.1.3
-console.log('[script.js] v1.1.3 loaded');
+// v1.1.4
 
 // Page transitions + work filter + case study
 
@@ -104,7 +103,6 @@ function initBeforeEnterFunctions(next) {
 
 function initAfterEnterFunctions(next) {
   const container = next || document;
-  console.log('[initAfterEnterFunctions] called, container:', container, 'already inited?', !!container._afterEnterInited);
 
   // On first load this runs TWICE — once from Barba's `once` hook and again
   // from the global `afterEnter` hook — which double-binds every click handler
@@ -112,10 +110,7 @@ function initAfterEnterFunctions(next) {
   // it never opens.) Mark the container so the duplicate same-container call is
   // a no-op. A real navigation supplies a fresh container node, so it still
   // re-initialises correctly each time.
-  if (container._afterEnterInited) {
-    console.log('[initAfterEnterFunctions] bailing early -- container already inited');
-    return;
-  }
+  if (container._afterEnterInited) return;
   container._afterEnterInited = true;
 
   nextPage = container;
@@ -124,7 +119,6 @@ function initAfterEnterFunctions(next) {
   initAccordion();
   initAccordionFilterLink();
   initSlider();
-  console.log('[initAfterEnterFunctions] about to call initCenteredSliders');
   initCenteredSliders();
   initWorkFilter();
   initViewToggle();   // must follow initWorkFilter — reads FilterAPI.currentParams()
@@ -209,6 +203,7 @@ barba.hooks.beforeEnter(data => {
 barba.hooks.afterLeave(() => {
   window.GALLERY_PLAYBACK_ID = null;
   if (hasScrollTrigger) ScrollTrigger.getAll().forEach(t => t.kill());
+  document.querySelector('.work-media-container')?.remove();
 });
 
 barba.hooks.enter(data => {
@@ -1214,20 +1209,14 @@ function initSeeMore() {
 
 function initWorkListMedia() {
   const root = document.querySelector('.work-list-view');
-  console.log('[workListMedia] init called, root found:', !!root);
   if (!root) return;
-  if (root._workMediaInited) {
-    console.log('[workListMedia] already inited on this root, skipping');
-    return;
-  }
+  if (root._workMediaInited) return;
   root._workMediaInited = true;
 
   const rows = Array.from(root.querySelectorAll('.work-item-list'));
-  console.log('[workListMedia] rows found:', rows.length);
   if (!rows.length) return;
 
   const isTouch = window.matchMedia('(hover: none)').matches;
-  console.log('[workListMedia] hover:none matches (touch branch)?', isTouch);
 
   if (isTouch) {
     // Touch/tablet — no cursor to follow, so reveal each row's image inline as it scrolls into view
@@ -1238,7 +1227,6 @@ function initWorkListMedia() {
 
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
-        console.log('[workListMedia] touch row intersecting?', entry.isIntersecting, entry.target);
         entry.target.querySelector('.flex-list')?.classList.toggle('is-inview', entry.isIntersecting);
       });
     }, { threshold: 0.2 });
@@ -1247,14 +1235,12 @@ function initWorkListMedia() {
     return;
   }
 
-  console.log('[workListMedia] gsap available?', !!window.gsap);
   if (!window.gsap) return;
 
   // Built here, not in Webflow — lives on <body> so positioning is document-relative
   const mediaContainer = document.createElement('div');
   mediaContainer.className = 'work-media-container';
   document.body.appendChild(mediaContainer);
-  console.log('[workListMedia] mediaContainer created and appended to body');
 
   gsap.set(mediaContainer, { yPercent: -50 });
   const yTo = gsap.quickTo(mediaContainer, 'y', { duration: 0.5, ease: 'power4' });
@@ -1262,11 +1248,9 @@ function initWorkListMedia() {
   let current = null;
 
   root.addEventListener('mouseenter', () => {
-    console.log('[workListMedia] root mouseenter — adding .on');
     mediaContainer.classList.add('on');
   });
   root.addEventListener('mouseleave', () => {
-    console.log('[workListMedia] root mouseleave — removing .on, clearing container');
     mediaContainer.classList.remove('on');
     mediaContainer.replaceChildren();
     current = null;
@@ -1279,12 +1263,10 @@ function initWorkListMedia() {
     if (!row || row === current) return; // guard against child re-fires
     current = row;
     const img = row.querySelector('.work-img-list');
-    console.log('[workListMedia] mouseover row, img found?', !!img, img?.currentSrc || img?.src);
     if (img) createMedia(img.currentSrc || img.src);
   });
 
   function createMedia(url) {
-    console.log('[workListMedia] createMedia called with url:', url);
     const div   = document.createElement('div');
     const image = document.createElement('img');
     image.src = url;
@@ -1670,30 +1652,19 @@ function initPeopleGrid() {
 //Team slider (centered, draggable, autoplay)
 
 function initCenteredSliders() {
-  console.log('[centeredSlider] initCenteredSliders called');
-
   // Only treat elements that actually CONTAIN slides as sliders.
   // This ignores the buttons container even if it still carries the
   // data-centered-slider="wrapper" attribute (the phantom "Slider #1").
-  const allWrapperEls = gsap.utils.toArray('[data-centered-slider="wrapper"]');
-  console.log('[centeredSlider] wrapper elements found:', allWrapperEls.length, allWrapperEls);
-
-  const sliderWrappers = allWrapperEls
+  const sliderWrappers = gsap.utils
+    .toArray('[data-centered-slider="wrapper"]')
     .filter(w => w.querySelector('[data-centered-slider="slide"]'));
-  console.log('[centeredSlider] wrappers containing slides:', sliderWrappers.length, sliderWrappers);
 
   sliderWrappers.forEach((sliderWrapper, wrapperIndex) => {
-    console.log('[centeredSlider] processing wrapper', wrapperIndex, sliderWrapper);
-
     // Barba-safe: don't double-bind if this exact element was already set up
-    if (sliderWrapper._sliderInit) {
-      console.log('[centeredSlider] wrapper already inited, skipping', wrapperIndex);
-      return;
-    }
+    if (sliderWrapper._sliderInit) return;
     sliderWrapper._sliderInit = true;
 
     const slides = gsap.utils.toArray(sliderWrapper.querySelectorAll('[data-centered-slider="slide"]'));
-    console.log('[centeredSlider] slides found:', slides.length, slides);
 
     // Buttons may live OUTSIDE the slide wrapper (separate Webflow block).
     // Look inside the wrapper first, then fall back to the document.
@@ -1701,7 +1672,6 @@ function initCenteredSliders() {
       || document.querySelector('[data-centered-slider="prev-button"]');
     const nextButton = sliderWrapper.querySelector('[data-centered-slider="next-button"]')
       || document.querySelector('[data-centered-slider="next-button"]');
-    console.log('[centeredSlider] prevButton:', prevButton, 'nextButton:', nextButton);
 
     let activeElement;
     let autoplay;
@@ -1710,11 +1680,9 @@ function initCenteredSliders() {
     const autoplayDuration = autoplayEnabled
       ? parseFloat(sliderWrapper.getAttribute('data-slider-autoplay-duration')) || 4
       : 0;
-    console.log('[centeredSlider] autoplayEnabled:', autoplayEnabled, 'autoplayDuration:', autoplayDuration);
 
     slides.forEach((slide, i) => slide.setAttribute("id", `slide-${i}`));
 
-    console.log('[centeredSlider] calling horizontalLoop with', slides.length, 'slides');
     const loop = horizontalLoop(slides, {
       paused: true,
       draggable: true,
@@ -1726,10 +1694,8 @@ function initCenteredSliders() {
         activeElement = element;
       }
     });
-    console.log('[centeredSlider] loop created:', loop);
 
     const startIndex = Math.floor(slides.length / 2);
-    console.log('[centeredSlider] moving to startIndex:', startIndex);
     loop.toIndex(startIndex, { duration: 0 });
 
     // -- Re-measure once images/fonts have settled --------------------------
@@ -1825,7 +1791,6 @@ function horizontalLoop(items, config) {
   let timeline;
   items = gsap.utils.toArray(items);
   config = config || {};
-  console.log('[horizontalLoop] called with', items.length, 'items, config:', config);
 
   gsap.context(() => {
     let onChange = config.onChange,
@@ -1879,7 +1844,6 @@ function horizontalLoop(items, config) {
         });
         gsap.set(items, { xPercent: i => xPercents[i] });
         totalWidth = getTotalWidth();
-        console.log('[horizontalLoop] populateWidths -- widths:', widths.slice(), 'totalWidth:', totalWidth, 'container:', container);
         if (widths.some(w => !w)) {
           console.warn("[horizontalLoop] A slide measured 0px wide -- measured before images loaded. settleRefresh() should correct this.");
         }
@@ -1983,9 +1947,7 @@ function horizontalLoop(items, config) {
 
     if (config.reversed) { tl.vars.onReverseComplete(); tl.reverse(); }
 
-    console.log('[horizontalLoop] draggable requested:', config.draggable, 'typeof Draggable:', typeof Draggable);
     if (config.draggable && typeof Draggable === "function") {
-      console.log('[horizontalLoop] setting up Draggable on', items[0].parentNode);
       proxy = document.createElement("div");
       let wrap = gsap.utils.wrap(0, 1),
         ratio, startProgress, draggable, lastSnap, initChangeX, wasPlaying,
@@ -2031,9 +1993,7 @@ function horizontalLoop(items, config) {
     lastIndex = curIndex;
     onChange && onChange(items[curIndex], curIndex);
     timeline = tl;
-    console.log('[horizontalLoop] setup complete, timeline duration:', tl.duration(), 'draggable attached:', !!tl.draggable);
   });
 
-  console.log('[horizontalLoop] returning timeline:', timeline);
   return timeline;
 }
