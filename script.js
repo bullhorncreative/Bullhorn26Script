@@ -1,4 +1,4 @@
-// v1.1.5
+// v1.1.6
 
 // Page transitions + work filter + case study
 
@@ -115,6 +115,7 @@ function initAfterEnterFunctions(next) {
 
   nextPage = container;
   initNavActiveDot();
+  initNavCtaLink();
   initModal();
   initAccordion();
   initAccordionFilterLink();
@@ -387,6 +388,30 @@ function initNavActiveDot() {
   links.forEach(link => {
     const href = (link.getAttribute('href') || '').replace(/\/$/, '');
     link.classList.toggle('is-active', href === path || (isWork(href) && isWork(path)));
+  });
+}
+
+
+
+//Nav CTA link — the nav persists across Barba transitions, so the "Get insights"
+//buttons are re-pointed on every page: Typeform on the warm-up page, warm-up elsewhere.
+
+const WARM_UP_PATH = '/brand-warm-up';
+const WARM_UP_FORM = 'https://bullhorncreative.typeform.com/to/yTr0uTir';
+
+function initNavCtaLink() {
+  const path   = window.location.pathname.replace(/\/$/, '') || '/';
+  const onPage = path === WARM_UP_PATH;
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    if (!btn.dataset.defaultHref) btn.dataset.defaultHref = btn.getAttribute('href');
+    btn.setAttribute('href', onPage ? WARM_UP_FORM : btn.dataset.defaultHref);
+    if (onPage) {
+      btn.setAttribute('target', '_blank');
+      btn.setAttribute('rel', 'noopener');
+    } else {
+      btn.removeAttribute('target');
+      btn.removeAttribute('rel');
+    }
   });
 }
 
@@ -1728,20 +1753,42 @@ function initCenteredSliders() {
 
     slides.forEach((slide, i) => slide.setAttribute("id", `slide-${i}`));
 
+    // -- Name/bio copy: only the centered slide shows it ---------------------
+    const copyOf = slide => slide.querySelectorAll('.slide-name-title, .slide-bio');
+    let copyReady = false; // snap (no fade) until the start slide is in place
+
+    gsap.set(sliderWrapper.querySelectorAll('.slide-name-title, .slide-bio'), { autoAlpha: 0 });
+
+    function showCopy(slide) {
+      const copy = copyOf(slide);
+      if (!copyReady || reducedMotion) return gsap.set(copy, { autoAlpha: 1, overwrite: true });
+      gsap.to(copy, { autoAlpha: 1, duration: 0.6, ease: 'osmo', stagger: 0.08, delay: 0.15, overwrite: true });
+    }
+    function hideCopy(slide) {
+      const copy = copyOf(slide);
+      if (!copyReady || reducedMotion) return gsap.set(copy, { autoAlpha: 0, overwrite: true });
+      gsap.to(copy, { autoAlpha: 0, duration: 0.3, ease: 'power2.in', overwrite: true });
+    }
+
     const loop = horizontalLoop(slides, {
       paused: true,
       draggable: true,
       center: true,
       paddingRight: 120,
       onChange: (element) => {
-        if (activeElement) activeElement.classList.remove("active");
+        if (activeElement) {
+          activeElement.classList.remove("active");
+          hideCopy(activeElement);
+        }
         element.classList.add("active");
+        showCopy(element);
         activeElement = element;
       }
     });
 
     const startIndex = Math.floor(slides.length / 2);
     loop.toIndex(startIndex, { duration: 0 });
+    copyReady = true;
 
     // -- Re-measure once images/fonts have settled --------------------------
     // The helper measures widths once on init. We re-measure after load and
