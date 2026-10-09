@@ -1,4 +1,4 @@
-// v1.1.4
+// v1.1.5
 
 // Page transitions + work filter + case study
 
@@ -118,6 +118,7 @@ function initAfterEnterFunctions(next) {
   initModal();
   initAccordion();
   initAccordionFilterLink();
+  initAccordionImages();
   initSlider();
   initCenteredSliders();
   initWorkFilter();
@@ -632,6 +633,50 @@ function initAccordion() {
         if (closeSiblings) items.forEach(s => { s.dataset.accordionStatus = 'not-active'; });
         item.dataset.accordionStatus = isActive ? 'not-active' : 'active';
       });
+    });
+  });
+}
+
+
+
+//Accordion image swap
+
+// data-img on the toggle → keyword in the matching image's filename
+const ACCORDION_IMAGE_MAP = {
+  'initial-fit':        'fit-conversion',
+  'pre-workshop':       'pre-workshop',
+  '90-minute':          '90-minute',
+  'brand-fundamentals': 'brand-fundamentals',
+  'budget':             'scope',
+};
+
+function initAccordionImages() {
+  nextPage.querySelectorAll('.image-block').forEach(block => {
+    const section = block.closest('.section');
+    const list    = section && section.querySelector('.accordion-css__list');
+    const images  = block.querySelectorAll('img');
+    if (!list || images.length < 2) return;
+
+    const defaultImg = images[0]; // shown when no item is open
+
+    function findImage(item) {
+      const key     = item?.querySelector('[data-img]')?.dataset.img.toLowerCase();
+      const keyword = ACCORDION_IMAGE_MAP[key];
+      if (!keyword) return null;
+      return [...images].find(img => img.src.includes(keyword)) || null;
+    }
+
+    function sync() {
+      const active = list.querySelector('[data-accordion-status="active"]');
+      const target = findImage(active) || defaultImg;
+      images.forEach(img => img.classList.toggle('is-hidden', img !== target));
+    }
+
+    sync();
+
+    const observer = new MutationObserver(sync);
+    list.querySelectorAll('.accordion-css__item').forEach(item => {
+      observer.observe(item, { attributes: true, attributeFilter: ['data-accordion-status'] });
     });
   });
 }
