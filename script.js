@@ -1,4 +1,4 @@
-// v1.1.6
+// v1.1.8
 
 // Page transitions + work filter + case study
 
@@ -666,13 +666,13 @@ function initAccordion() {
 
 //Accordion image swap
 
-// data-img on the toggle → keyword in the matching image's filename
+// data-img on the toggle → keyword in the matching image's filename (case-insensitive)
 const ACCORDION_IMAGE_MAP = {
-  'initial-fit':        'fit-conversion',
-  'pre-workshop':       'pre-workshop',
-  '90-minute':          '90-minute',
-  'brand-fundamentals': 'brand-fundamentals',
-  'budget':             'scope',
+  'initial-fit':        'howitworks_fit',
+  'pre-workshop':       'survey',
+  '90-minute':          '90minuteworkshop',
+  'brand-fundamentals': 'brandfundamentals',
+  'budget':             'budgetdeliver',
 };
 
 function initAccordionImages() {
@@ -688,7 +688,7 @@ function initAccordionImages() {
       const key     = item?.querySelector('[data-img]')?.dataset.img.toLowerCase();
       const keyword = ACCORDION_IMAGE_MAP[key];
       if (!keyword) return null;
-      return [...images].find(img => img.src.includes(keyword)) || null;
+      return [...images].find(img => img.src.toLowerCase().includes(keyword)) || null;
     }
 
     function sync() {
